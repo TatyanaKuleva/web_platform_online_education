@@ -12,6 +12,7 @@ django = "^6.0"
 pillow = "^12.0.0"
 ipython = "^9.8.0"
 python-dotenv = "^1.2.1"
+djangorestframework = "^3.16.1"
 
 
 [tool.poetry.group.dev.dependencies]
