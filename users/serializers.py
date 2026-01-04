@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
+from rest_framework.validators import UniqueValidator
 
 from users.models import Payment, User
 
@@ -11,8 +12,13 @@ class PaymentSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class UserSerializer(ModelSerializer):
-    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+class UserPublicSerializer(ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["username", "email", "avatar", "city"]
+
+
+class UserPrivateSerializer(ModelSerializer):
     payments_of_user = SerializerMethodField()
 
     def get_payments_of_user(self, obj):
@@ -20,6 +26,12 @@ class UserSerializer(ModelSerializer):
         serializer = PaymentSerializer(payments, many=True)
         return serializer.data
 
+    class Meta:
+        model = User
+        fields = "__all__"
+
+
+class UserCreateSerializer(ModelSerializer):
     class Meta:
         model = User
         fields = "__all__"
