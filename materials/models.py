@@ -10,6 +10,15 @@ class Course(models.Model):
     )
     preview = models.ImageField(upload_to="materials/previews/", blank=True, null=True)
 
+    owner = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        verbose_name="Владелец",
+        help_text="Укажите владельца",
+    )
+
     def __str__(self):
         return self.title
 
@@ -32,6 +41,15 @@ class Lesson(models.Model):
     )
     preview = (models.ImageField(upload_to="materials/previews/", blank=True, null=True),)
     video_url = models.URLField(verbose_name="Ссылка на видео урока")
+
+    owner = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        verbose_name="Владелец",
+        help_text="Укажите владельца",
+    )
 
     def __str__(self):
         return f"{self.course.title} - {self.title}"
