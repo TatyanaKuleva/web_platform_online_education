@@ -19,6 +19,7 @@ class Course(models.Model):
         verbose_name="Владелец",
         help_text="Укажите владельца",
     )
+    price = models.DecimalField(max_digits=8, decimal_places=2, default=10, verbose_name="Цена курса")
 
     def __str__(self):
         return self.title

@@ -4,9 +4,20 @@ from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.utils.decorators import method_decorator
 from drf_yasg.utils import swagger_auto_schema
+from materials.models import Course, Lesson
+from rest_framework.response import Response
+from rest_framework import generics, status
 
 from users.models import Payment, User
 from users.permissions import IsOwner, IsUserOwner
+from .serializers import PaymentCreateSerializer, PaymentSerializer
+
+from .services import (
+    create_stripe_product,
+    create_stripe_price,
+    create_stripe_session,
+    get_stripe_session_status,
+)
 
 from .serializers import PaymentSerializer, UserCreateSerializer, UserPrivateSerializer, UserPublicSerializer
 
@@ -54,25 +65,69 @@ class UserCreateAPIView(CreateAPIView):
     def perform_create(self, serializer):
         serializer.save(is_active=True)
 
-# @method_decorator(name='list', decorator=swagger_auto_schema(
-#     operation_summary="Список платежей",
-#     operation_description="Позволяет фильтровать по курсу, уроку и способу оплаты."
-# ))
-class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.all()
-    serializer_class = PaymentSerializer
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
-    filterset_fields = ("lesson", "course")
-    # ordering_fields = ("payment_date",)
-    search_fields = ("user__id",)
 
-# class PaymentCreateAPIView(CreateAPIView):
-#     serializer_class = PaymentSerializer
-#     queryset = Payment.objects.all()
-#
-#     def perform_create(self, serializer):
-#         pass
-#        # serializer.save(is_active=True)
+class CreatePaymentView(generics.GenericAPIView):
+    serializer_class = PaymentCreateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        course_id = serializer.validated_data["course_id"]
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return Response({"detail": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+        product = create_stripe_product(course.title)
+        amount = course.price if (hasattr(course, 'price') and course.price is not None) else 10
+        print(amount)
+        price = create_stripe_price(amount, product.id)
+        success_url = "https://127.0.0.1:8000/"
+        cancel_url = "https://127.0.0.1:8000/"
+        session = create_stripe_session(price.id)
+
+
+        payment = Payment.objects.create(
+            user=request.user,
+            course=course,
+            amount=amount,
+            stripe_session_id=session.id,
+            payment_link=session.url,
+            status="pending"
+        )
+
+        return Response({
+            "payment_id": payment.id,
+            "payment_link": payment.payment_link,
+            "status": payment.status,
+        }, status=status.HTTP_201_CREATED)
+
+class PaymentStatusView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, session_id, *args, **kwargs):
+        try:
+            payment = Payment.objects.get(stripe_session_id=session_id, user=request.user)
+        except Payment.DoesNotExist:
+            return Response({"detail": "Payment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        session_data = get_stripe_session_status(session_id)
+        status_payment = session_data.get("payment_status", "unknown")
+
+        payment.status = status_payment
+        payment.save()
+
+        return Response({
+            "payment_id": payment.id,
+            "status": payment.status,
+            "payment_link": payment.payment_link,
+            "customer_email": session_data.get("customer_details", {}).get("email"),
+        })
+
+
 
 
 
