@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 from rest_framework import status
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
 from materials.models import Course, Lesson, CourseSubscription
@@ -15,7 +17,11 @@ from django.shortcuts import get_object_or_404
 
 User = get_user_model()
 
+
 class CourseViewSet(ModelViewSet):
+    """
+       API для управления курсами.
+       """
     queryset = Course.objects.all()
     pagination_class = CustomPagination
 
@@ -49,11 +55,14 @@ class CourseViewSet(ModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['request'] = self.request
+        context["request"] = self.request
         return context
 
 
 class LessonCreateApiView(CreateAPIView):
+    """
+          API создания урока.
+          """
     serializer_class = LessonSerializer
     permission_classes = (~IsModerators, IsAuthenticated)
 
@@ -64,9 +73,12 @@ class LessonCreateApiView(CreateAPIView):
 
 
 class LessonListApiView(ListAPIView):
+    """
+          Просмотр списка уроков в зависимости от наличия разрешения пользователя.
+    """
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
-    permission_classes = [IsAuthenticated, IsModerators| IsOwner]
+    permission_classes = [IsAuthenticated, IsModerators | IsOwner]
     pagination_class = CustomPagination
 
     def get_queryset(self):
@@ -94,13 +106,31 @@ class LessonUpdateApiView(UpdateAPIView):
     permission_classes = (IsAuthenticated, IsModerators | IsOwner)
 
 
-
 class CourseSubscriptionView(APIView):
+    @swagger_auto_schema(
+        operation_description="Подписка или отписка пользователя на курс",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['user_id', 'course_id', 'action'],
+            properties={
+                'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID пользователя'),
+                'course_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID курса'),
+                'action': openapi.Schema(type=openapi.TYPE_STRING,
+                                         description="Действие: 'subscribe' или 'unsubscribe'"),
+            },
+        ),
+        responses={
+            status.HTTP_201_CREATED: openapi.Response('Подписка успешно добавлена'),
+            status.HTTP_200_OK: openapi.Response('Подписка уже существует или успешно удалена'),
+            status.HTTP_404_NOT_FOUND: openapi.Response('Подписка не найдена'),
+            status.HTTP_400_BAD_REQUEST: openapi.Response('Ошибка запроса'),
+        }
+    )
 
     def post(self, request):
-        user_id = request.data.get('user_id')
-        course_id = request.data.get('course_id')
-        action = request.data.get('action')
+        user_id = request.data.get("user_id")
+        course_id = request.data.get("course_id")
+        action = request.data.get("action")
 
         if not all([user_id, course_id, action]):
             return Response({"detail": "user_id, course_id и action обязательны"}, status=status.HTTP_400_BAD_REQUEST)
@@ -108,14 +138,14 @@ class CourseSubscriptionView(APIView):
         user = get_object_or_404(User, pk=user_id)
         course = get_object_or_404(Course, pk=course_id)
 
-        if action == 'subscribe':
+        if action == "subscribe":
             subscription, created = CourseSubscription.objects.get_or_create(user=user, course=course)
             if created:
                 return Response({"detail": "Подписка успешно добавлена"}, status=status.HTTP_201_CREATED)
             else:
                 return Response({"detail": "Подписка уже существует"}, status=status.HTTP_200_OK)
 
-        elif action == 'unsubscribe':
+        elif action == "unsubscribe":
             subscription = CourseSubscription.objects.filter(user=user, course=course).first()
             if subscription:
                 subscription.delete()
@@ -124,6 +154,7 @@ class CourseSubscriptionView(APIView):
                 return Response({"detail": "Подписка не найдена"}, status=status.HTTP_404_NOT_FOUND)
 
         else:
-            return Response({"detail": "Неверное действие. Используйте 'subscribe' или 'unsubscribe'."},
-                            status=status.HTTP_400_BAD_REQUEST)
-
+            return Response(
+                {"detail": "Неверное действие. Используйте 'subscribe' или 'unsubscribe'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
