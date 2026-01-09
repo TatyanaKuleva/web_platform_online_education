@@ -1,7 +1,12 @@
 import stripe
 from django.conf import settings
+import os
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
+from dotenv import load_dotenv
+
+load_dotenv()
+
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 def create_stripe_product(course_title):
     product = stripe.Product.create(name=course_title)
