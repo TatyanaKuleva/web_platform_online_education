@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from .tasks import send_course_update_email
 
 
 from materials.models import Course, Lesson, CourseSubscription
@@ -26,7 +27,7 @@ class CourseViewSet(ModelViewSet):
     pagination_class = CustomPagination
 
     def get_serializer_class(self):
-        if self.action is "retrieve":
+        if self.action == "retrieve":
             return CourseDetailSerializer
         return CourseSerializer
 
@@ -40,23 +41,35 @@ class CourseViewSet(ModelViewSet):
             self.permission_classes = (~IsModerators,)
         elif self.action == "destroy":
             self.permission_classes = (~IsModerators | IsOwner,)
-        elif self.action in ["update", "retrieve", "list"]:
-            self.permission_classes = (IsOwner,)
+        # elif self.action in ["update", "retrieve", "list"]:
+        #     self.permission_classes = (IsOwner,)
         else:
             self.permission_classes = (IsAuthenticated,)
         return [permission() for permission in self.permission_classes]
 
-    def get_queryset(self):
-        user = self.request.user
-        if user.groups.filter(name="moderators").exists():
-            return Course.objects.all()
-
-        return Course.objects.filter(owner=user)
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     if user.groups.filter(name="moderators").exists():
+    #         return Course.objects.all()
+    #
+    #     return Course.objects.filter(owner=user)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context["request"] = self.request
         return context
+
+    def perform_update(self, serializer):
+        course = serializer.save()
+        subscribers =CourseSubscription.objects.filter(course=course).select_related('user')
+
+        for subscription in subscribers:
+            email = subscription.user.email
+            title = course.title
+            print(f"Отправка email: {email}, курс: {title}")  # Или используйте logging
+            send_course_update_email.delay(email, title)
+        # for subscription in subscribers:
+        #     send_course_update_email.delay(subscription.user.email, course.title)
 
 
 class LessonCreateApiView(CreateAPIView):
