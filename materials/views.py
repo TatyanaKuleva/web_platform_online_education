@@ -1,28 +1,29 @@
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 from rest_framework.generics import CreateAPIView, DestroyAPIView, ListAPIView, RetrieveAPIView, UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
-from rest_framework import status
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-from .tasks import send_course_update_email
+from rest_framework.viewsets import ModelViewSet
 
-
-from materials.models import Course, Lesson, CourseSubscription
+from materials.models import Course, CourseSubscription, Lesson
 from materials.pagination import CustomPagination
 from materials.serializers import CourseDetailSerializer, CourseSerializer, LessonSerializer
 from users.permissions import IsModerators, IsOwner
-from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
+
+from .tasks import send_course_update_email
 
 User = get_user_model()
 
 
 class CourseViewSet(ModelViewSet):
     """
-       API для управления курсами.
-       """
+    API для управления курсами.
+    """
+
     queryset = Course.objects.all()
     pagination_class = CustomPagination
 
@@ -61,7 +62,7 @@ class CourseViewSet(ModelViewSet):
 
     def perform_update(self, serializer):
         course = serializer.save()
-        subscribers =CourseSubscription.objects.filter(course=course).select_related('user')
+        subscribers = CourseSubscription.objects.filter(course=course).select_related("user")
 
         for subscription in subscribers:
             email = subscription.user.email
@@ -74,8 +75,9 @@ class CourseViewSet(ModelViewSet):
 
 class LessonCreateApiView(CreateAPIView):
     """
-          API создания урока.
-          """
+    API создания урока.
+    """
+
     serializer_class = LessonSerializer
     permission_classes = (~IsModerators, IsAuthenticated)
 
@@ -87,8 +89,9 @@ class LessonCreateApiView(CreateAPIView):
 
 class LessonListApiView(ListAPIView):
     """
-          Просмотр списка уроков в зависимости от наличия разрешения пользователя.
+    Просмотр списка уроков в зависимости от наличия разрешения пользователя.
     """
+
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     permission_classes = [IsAuthenticated, IsModerators | IsOwner]
@@ -124,22 +127,22 @@ class CourseSubscriptionView(APIView):
         operation_description="Подписка или отписка пользователя на курс",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=['user_id', 'course_id', 'action'],
+            required=["user_id", "course_id", "action"],
             properties={
-                'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID пользователя'),
-                'course_id': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID курса'),
-                'action': openapi.Schema(type=openapi.TYPE_STRING,
-                                         description="Действие: 'subscribe' или 'unsubscribe'"),
+                "user_id": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID пользователя"),
+                "course_id": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID курса"),
+                "action": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="Действие: 'subscribe' или 'unsubscribe'"
+                ),
             },
         ),
         responses={
-            status.HTTP_201_CREATED: openapi.Response('Подписка успешно добавлена'),
-            status.HTTP_200_OK: openapi.Response('Подписка уже существует или успешно удалена'),
-            status.HTTP_404_NOT_FOUND: openapi.Response('Подписка не найдена'),
-            status.HTTP_400_BAD_REQUEST: openapi.Response('Ошибка запроса'),
-        }
+            status.HTTP_201_CREATED: openapi.Response("Подписка успешно добавлена"),
+            status.HTTP_200_OK: openapi.Response("Подписка уже существует или успешно удалена"),
+            status.HTTP_404_NOT_FOUND: openapi.Response("Подписка не найдена"),
+            status.HTTP_400_BAD_REQUEST: openapi.Response("Ошибка запроса"),
+        },
     )
-
     def post(self, request):
         user_id = request.data.get("user_id")
         course_id = request.data.get("course_id")

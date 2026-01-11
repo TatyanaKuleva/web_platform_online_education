@@ -1,6 +1,5 @@
 from rest_framework import serializers
-from rest_framework.serializers import ModelSerializer, SerializerMethodField, Serializer
-
+from rest_framework.serializers import ModelSerializer, Serializer, SerializerMethodField
 
 from users.models import Payment, User
 
@@ -10,6 +9,7 @@ class PaymentSerializer(ModelSerializer):
     class Meta:
         model = Payment
         fields = "__all__"
+
 
 class PaymentCreateSerializer(Serializer):
     course_id = serializers.IntegerField()
@@ -46,6 +46,3 @@ class UserCreateSerializer(ModelSerializer):
         user.set_password(password)
         user.save()
         return user
-
-
-
