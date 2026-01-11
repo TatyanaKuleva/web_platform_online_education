@@ -1,9 +1,10 @@
-from rest_framework.test import APITestCase, APIClient, force_authenticate
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.urls import reverse
 from rest_framework import status
-from django.contrib.auth.models import Group
-from django.contrib.auth import get_user_model
-from materials.models import Course, Lesson, CourseSubscription
+from rest_framework.test import APIClient, APITestCase, force_authenticate
+
+from materials.models import Course, CourseSubscription, Lesson
 
 User = get_user_model()
 

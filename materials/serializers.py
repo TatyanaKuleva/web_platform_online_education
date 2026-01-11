@@ -1,8 +1,9 @@
-from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework import serializers
-from .validators import validate_no_external_links_except_youtube
+from rest_framework.serializers import ModelSerializer, SerializerMethodField
 
-from materials.models import Course, Lesson, CourseSubscription
+from materials.models import Course, CourseSubscription, Lesson
+
+from .validators import validate_no_external_links_except_youtube
 
 
 class LessonSerializer(ModelSerializer):

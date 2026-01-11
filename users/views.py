@@ -1,35 +1,34 @@
+from django.utils.decorators import method_decorator
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, viewsets
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import filters, generics, status, viewsets
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.utils.decorators import method_decorator
-from drf_yasg.utils import swagger_auto_schema
-from materials.models import Course, Lesson
 from rest_framework.response import Response
-from rest_framework import generics, status
 
+from materials.models import Course, Lesson
 from users.models import Payment, User
 from users.permissions import IsOwner, IsUserOwner
-from .serializers import PaymentCreateSerializer, PaymentSerializer
 
-from .services import (
-    create_stripe_product,
-    create_stripe_price,
-    create_stripe_session,
-    get_stripe_session_status,
+from .serializers import (PaymentCreateSerializer, PaymentSerializer, UserCreateSerializer, UserPrivateSerializer,
+                          UserPublicSerializer)
+from .services import create_stripe_price, create_stripe_product, create_stripe_session, get_stripe_session_status
+
+
+@method_decorator(
+    name="list",
+    decorator=swagger_auto_schema(
+        operation_description="Список пользователей (приватные данные)",
+        responses={200: UserPrivateSerializer(many=True)},
+    ),
 )
-
-from .serializers import PaymentSerializer, UserCreateSerializer, UserPrivateSerializer, UserPublicSerializer
-
-@method_decorator(name='list', decorator=swagger_auto_schema(
-    operation_description="Список пользователей (приватные данные)",
-    responses={200: UserPrivateSerializer(many=True)}
-))
-@method_decorator(name='retrieve', decorator=swagger_auto_schema(
-    operation_description="Просмотр профиля. Если это ваш профиль — данных больше.",
-    responses={200: UserPrivateSerializer(), 203: UserPublicSerializer()}
-))
-
+@method_decorator(
+    name="retrieve",
+    decorator=swagger_auto_schema(
+        operation_description="Просмотр профиля. Если это ваш профиль — данных больше.",
+        responses={200: UserPrivateSerializer(), 203: UserPublicSerializer()},
+    ),
+)
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
 
@@ -59,9 +58,8 @@ class UserCreateAPIView(CreateAPIView):
 
     @swagger_auto_schema(
         operation_summary="Регистрация нового пользователя",
-        responses={201: UserCreateSerializer(), 400: "Ошибка валидации"}
+        responses={201: UserCreateSerializer(), 400: "Ошибка валидации"},
     )
-
     def perform_create(self, serializer):
         serializer.save(is_active=True)
 
@@ -80,15 +78,13 @@ class CreatePaymentView(generics.GenericAPIView):
         except Course.DoesNotExist:
             return Response({"detail": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
 
-
         product = create_stripe_product(course.title)
-        amount = course.price if (hasattr(course, 'price') and course.price is not None) else 10
+        amount = course.price if (hasattr(course, "price") and course.price is not None) else 10
         print(amount)
         price = create_stripe_price(amount, product.id)
         success_url = "https://127.0.0.1:8000/"
         cancel_url = "https://127.0.0.1:8000/"
         session = create_stripe_session(price.id)
-
 
         payment = Payment.objects.create(
             user=request.user,
@@ -96,14 +92,18 @@ class CreatePaymentView(generics.GenericAPIView):
             amount=amount,
             stripe_session_id=session.id,
             payment_link=session.url,
-            status="pending"
+            status="pending",
         )
 
-        return Response({
-            "payment_id": payment.id,
-            "payment_link": payment.payment_link,
-            "status": payment.status,
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "payment_id": payment.id,
+                "payment_link": payment.payment_link,
+                "status": payment.status,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
 
 class PaymentStatusView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
@@ -120,14 +120,11 @@ class PaymentStatusView(generics.RetrieveAPIView):
         payment.status = status_payment
         payment.save()
 
-        return Response({
-            "payment_id": payment.id,
-            "status": payment.status,
-            "payment_link": payment.payment_link,
-            "customer_email": session_data.get("customer_details", {}).get("email"),
-        })
-
-
-
-
-
+        return Response(
+            {
+                "payment_id": payment.id,
+                "status": payment.status,
+                "payment_link": payment.payment_link,
+                "customer_email": session_data.get("customer_details", {}).get("email"),
+            }
+        )
