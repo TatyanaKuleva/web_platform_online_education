@@ -67,7 +67,7 @@ class CourseViewSet(ModelViewSet):
         for subscription in subscribers:
             email = subscription.user.email
             title = course.title
-            print(f"Отправка email: {email}, курс: {title}")  # Или используйте logging
+            print(f"Отправка email: {email}, курс: {title}")
             send_course_update_email.delay(email, title)
         # for subscription in subscribers:
         #     send_course_update_email.delay(subscription.user.email, course.title)

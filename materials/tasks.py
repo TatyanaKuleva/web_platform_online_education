@@ -27,3 +27,8 @@ def check_last_login():
     updated_count = users_to_deactivate.update(is_active=False)
 
     return f"{updated_count} users deactivated"
+
+@shared_task
+def check():
+    from_email = EMAIL_HOST_USER
+    send_mail("тема", "текст", from_email , ["tatianaarsentievna@gmail.com"])
