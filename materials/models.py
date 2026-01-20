@@ -42,6 +42,7 @@ class Lesson(models.Model):
     preview = models.ImageField(upload_to="materials/previews/", blank=True, null=True)
     video_url = models.URLField(verbose_name="Ссылка на видео урока")
 
+
     owner = models.ForeignKey(
         "users.User",
         on_delete=models.SET_NULL,
