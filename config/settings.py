@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from django.conf.global_settings import STATICFILES_DIRS, STATIC_ROOT
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,7 +15,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 INSTALLED_APPS = [
@@ -113,6 +114,8 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 STATIC_URL = "static/"
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+STATIC_ROOT = [os.path.join(BASE_DIR, "staticfiles")]
 
 AUTH_USER_MODEL = "users.User"
 
