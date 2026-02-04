@@ -1,16 +1,15 @@
 from django.utils.decorators import method_decorator
-from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import filters, generics, status, viewsets
+from rest_framework import generics, status, viewsets
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from materials.models import Course, Lesson
+from materials.models import Course
 from users.models import Payment, User
-from users.permissions import IsOwner, IsUserOwner
+from users.permissions import IsUserOwner
 
-from .serializers import (PaymentCreateSerializer, PaymentSerializer, UserCreateSerializer, UserPrivateSerializer,
+from .serializers import (PaymentCreateSerializer, UserCreateSerializer, UserPrivateSerializer,
                           UserPublicSerializer)
 from .services import create_stripe_price, create_stripe_product, create_stripe_session, get_stripe_session_status
 
@@ -82,8 +81,6 @@ class CreatePaymentView(generics.GenericAPIView):
         amount = course.price if (hasattr(course, "price") and course.price is not None) else 10
         print(amount)
         price = create_stripe_price(amount, product.id)
-        success_url = "https://127.0.0.1:8000/"
-        cancel_url = "https://127.0.0.1:8000/"
         session = create_stripe_session(price.id)
 
         payment = Payment.objects.create(

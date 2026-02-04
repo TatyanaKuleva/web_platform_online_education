@@ -28,7 +28,8 @@ def check_last_login():
 
     return f"{updated_count} users deactivated"
 
+
 @shared_task
 def check():
     from_email = EMAIL_HOST_USER
-    send_mail("тема", "текст", from_email , ["tatianaarsentievna@gmail.com"])
+    send_mail("тема", "текст", from_email, ["tatianaarsentievna@gmail.com"])
