@@ -2,7 +2,6 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-from django.conf.global_settings import STATICFILES_DIRS, STATIC_ROOT
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -74,15 +73,14 @@ REST_FRAMEWORK = {
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": os.getenv("NAME"),
-        "USER": os.getenv("USER"),
-        "PASSWORD": os.getenv("PASSWORD"),
-        "HOST": os.getenv("HOST"),
-        "PORT": os.getenv("PORT"),
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "HOST": os.getenv("POSTGRES_HOST"),
+        "PORT": os.getenv("POSTGRES_PORT"),
         "OPTIONS": {"client_encoding": "UTF8"},
     }
 }
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -113,9 +111,8 @@ MEDIA_URL = "/media/"
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
-STATIC_URL = "static/"
-STATICFILES_DIRS = os.path.join(BASE_DIR, "static")
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_URL = "/static/"
+STATIC_ROOT = "/app/static"
 
 AUTH_USER_MODEL = "users.User"
 
