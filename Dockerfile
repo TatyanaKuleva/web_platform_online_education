@@ -1,23 +1,18 @@
+FROM python:3.13-slim
 
-FROM python:3.12-slim
+RUN apt-get update && apt-get install -y curl
 
-WORKDIR /app
+WORKDIR /code
 
-RUN apt-get update && apt-get install -y curl build-essential && rm -rf /var/lib/apt/lists/*
+RUN pip install poetry==2.1.3
 
-RUN pip install poetry
+COPY pyproject.toml poetry.lock ./
 
-ENV PATH="/root/.local/bin:$PATH"
+RUN poetry config virtualenvs.create false && poetry install --no-root --only main
 
-COPY pyproject.toml poetry.lock* /app/
+COPY . .
 
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi --no-root
 
-COPY . /app/
-
-EXPOSE 8000
-
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
-
+RUN useradd -m celeryuser
+USER celeryuser
 
